@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://github.com/udacity/SFND_3D_Object_Tracking/blob/master/dat/yolo/yolov3-tiny.weights
+HostUrl=https://media.githubusercontent.com/media/udacity/SFND_3D_Object_Tracking/master/dat/yolo/yolov3-tiny.weights
