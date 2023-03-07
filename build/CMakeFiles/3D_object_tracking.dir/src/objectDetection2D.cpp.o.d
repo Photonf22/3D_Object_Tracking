@@ -244,4 +244,10 @@ CMakeFiles/3D_object_tracking.dir/src/objectDetection2D.cpp.o: \
  /usr/local/include/opencv4/opencv2/imgcodecs.hpp \
  /usr/local/include/opencv4/opencv2/videoio.hpp \
  /home/reloadf22/repos/3D_Object_Tracking/src/objectDetection2D.hpp \
- /home/reloadf22/repos/3D_Object_Tracking/src/dataStructures.h
+ /home/reloadf22/repos/3D_Object_Tracking/src/dataStructures.h \
+ /usr/local/include/opencv4/opencv2/highgui/highgui.hpp \
+ /usr/local/include/opencv4/opencv2/imgproc/imgproc.hpp \
+ /usr/local/include/opencv4/opencv2/features2d.hpp \
+ /usr/local/include/opencv4/opencv2/flann/miniflann.hpp \
+ /usr/local/include/opencv4/opencv2/flann/defines.h \
+ /usr/local/include/opencv4/opencv2/flann/config.h

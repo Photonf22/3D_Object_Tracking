@@ -5,6 +5,9 @@
 #include <vector>
 #include <map>
 #include <opencv2/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/features2d.hpp>
 
 struct LidarPoint { // single lidar point in space
     double x,y,z,r; // x,y,z in [m], r is point reflectivity

@@ -121,7 +121,6 @@ int main(int argc, const char *argv[])
 
         cout << "#3 : CROP LIDAR POINTS done" << endl;
 
-
         /* CLUSTER LIDAR POINT CLOUD */
 
         // associate Lidar points with camera-based ROI
@@ -129,7 +128,7 @@ int main(int argc, const char *argv[])
         clusterLidarWithROI((dataBuffer.end()-1)->boundingBoxes, (dataBuffer.end() - 1)->lidarPoints, shrinkFactor, P_rect_00, R_rect_00, RT);
 
         // Visualize 3D objects
-        bVis = true;
+        bVis = false;
         if(bVis)
         {
             show3DObjects((dataBuffer.end()-1)->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), bVis);
@@ -273,14 +272,11 @@ int main(int argc, const char *argv[])
                     //// EOF STUDENT ASSIGNMENT
 
                     //// STUDENT ASSIGNMENT
-                    BoundingBox tempCurr = *currBB;
-                    BoundingBox tempPrev = *prevBB;
+
                     //// TASK FP.3 -> assign enclosed keypoint matches to bounding box (implement -> clusterKptMatchesWithROI)
-                    clusterKptMatchesWithROI(tempCurr, tempPrev.keypoints,  tempCurr.keypoints, tempCurr.kptMatches);
-                    clusterKptMatchesWithROI(tempPrev, tempPrev.keypoints,  tempCurr.keypoints, tempPrev.kptMatches);
-                    currBB=&tempCurr;
-                    prevBB=&tempPrev;
-                    continue;
+                    clusterKptMatchesWithROI(*currBB, (dataBuffer.end() - 2)->keypoints,  (dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->kptMatches);
+                    clusterKptMatchesWithROI(*prevBB, (dataBuffer.end() - 2)->keypoints,  (dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 2)->kptMatches);
+
                     //// TASK FP.4 -> compute time-to-collision based on camera (implement -> computeTTCCamera)
                     double ttcCamera;               
                     computeTTCCamera((dataBuffer.end() - 2)->keypoints, (dataBuffer.end() - 1)->keypoints, currBB->kptMatches, sensorFrameRate, ttcCamera);
