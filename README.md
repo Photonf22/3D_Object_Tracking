@@ -1,14 +1,97 @@
 # SFND 3D Object Tracking
 
-Welcome to the final project of the camera course. By completing all the lessons, you now have a solid understanding of keypoint detectors, descriptors, and methods to match them between successive images. Also, you know how to detect objects in an image using the YOLO deep-learning framework. And finally, you know how to associate regions in a camera image with Lidar points in 3D space. Let's take a look at our program schematic to see what we already have accomplished and what's still missing.
+Flow Diagram of Project
 
 <img src="images/course_code_structure.png" width="779" height="414" />
 
-In this final project, you will implement the missing parts in the schematic. To do this, you will complete four major tasks: 
-1. First, you will develop a way to match 3D objects over time by using keypoint correspondences. 
-2. Second, you will compute the TTC based on Lidar measurements. 
-3. You will then proceed to do the same using the camera, which requires to first associate keypoint matches to regions of interest and then to compute the TTC based on those matches. 
-4. And lastly, you will conduct various tests with the framework. Your goal is to identify the most suitable detector/descriptor combination for TTC estimation and also to search for problems that can lead to faulty measurements by the camera or Lidar sensor. In the last course of this Nanodegree, you will learn about the Kalman filter, which is a great way to combine the two independent TTC measurements into an improved version which is much more reliable than a single sensor alone can be. But before we think about such things, let us focus on your final project in the camera course. 
+# Project Rubric:
+
+## FP.0 Final Report
+- Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf.
+
+## FP.1 Match 3D Objects
+- Implement the method "matchBoundingBoxes", which takes as input both the previous and the current data frames and provides as output the ids of the matched regions of interest (i.e. the boxID property). Matches must be the ones with the highest number of keypoint correspondences.
+
+https://github.com/Photonf22/3D_Object_Tracking/blob/d1720884aa9c6bf60ce6e09532616ca6dc968695/src/camFusion_Student.cpp#L317
+
+## FP.2 Compute Lidar-based TTC
+- Compute the time-to-collision in second for all matched 3D objects using only Lidar measurements from the matched bounding boxes between current and previous frame.
+
+https://github.com/Photonf22/3D_Object_Tracking/blob/d1720884aa9c6bf60ce6e09532616ca6dc968695/src/camFusion_Student.cpp#L279
+
+## FP.3 Associate Keypoint Correspondences with Bounding Boxes
+- Prepare the TTC computation based on camera measurements by associating keypoint correspondences to the bounding boxes which enclose them. All matches which satisfy this condition must be added to a vector in the respective bounding box.
+
+https://github.com/Photonf22/3D_Object_Tracking/blob/d1720884aa9c6bf60ce6e09532616ca6dc968695/src/camFusion_Student.cpp#L188
+
+## FP.4 Compute Camera-based TTC
+- Compute the time-to-collision in second for all matched 3D objects using only keypoint correspondences from the matched bounding boxes between current and previous frame.
+
+https://github.com/Photonf22/3D_Object_Tracking/blob/d1720884aa9c6bf60ce6e09532616ca6dc968695/src/camFusion_Student.cpp#L216
+
+## FP.5 : Performance Evaluation 1
+
+![image](https://user-images.githubusercontent.com/105236455/224571888-11a896b0-9b31-402c-8735-5974c2e0b22b.png)
+
+According to the above examples, It can be assumed that the factor that caused the lidar to be somewhat off compared to the Camera TTC is due to the outliers points. Even though we used the mean distance of all points between the current and previous frame. This was not enought to get rid of these outliers which affected our results. One way to solve this would be to lower the threshold value of what is acceptable when calculating TTC Lidar. Thus points that fall above the mean euclidian distance times the threshold will be ignored. Currently the threshold is set to 1.3 but one could lower it to 1.1 to get rid of more points that affect the lidar TTC calculation.
+
+###  Harris-Brisk
+
+#### Image 10  (Previous) and Image 11 (Current and Previous) as well as Image 12 (Current) Top-View
+![image](https://user-images.githubusercontent.com/105236455/224577921-ceb7360f-de1c-47d7-9c29-486f8ce5efcd.png)
+
+### Fast-SIFT
+
+#### Image 6  (Previous) and Image 7 (Current) Top-View
+![image](https://user-images.githubusercontent.com/105236455/224577970-8df0d07b-a1cd-4394-95b7-e3f2e1295edd.png)
+
+#### Image 9 (Previous) and Image 10 (Current) Top-View
+![image](https://user-images.githubusercontent.com/105236455/224578023-2215982a-4149-40d2-bc9d-2368228a527c.png)
+
+### Akaze-ORB
+#### Image 8 (Previous) and Image 9 (Current) Top-View
+
+![image](https://user-images.githubusercontent.com/105236455/224578219-26e0f934-4886-4f0f-918a-dc21777e50b0.png)
+
+#### Image 11 (Previous) and Image 12 (Current) Top-View
+
+![image](https://user-images.githubusercontent.com/105236455/224578202-7946303c-96a9-4d8c-bb64-4e2f28dcce9d.png)
+
+## FP.6 Performance Evaluation 2
+
+#### Top Choices according to speed and accuracy
+
+![image](https://user-images.githubusercontent.com/105236455/224578309-7878a705-e177-4cbc-9b7c-14f282ab0cec.png)
+
+#### Image Index along with their respective TTC Lidar and Camera.
+
+![image](https://user-images.githubusercontent.com/105236455/224578324-f6681ecc-28ac-410f-a1ad-9edec1fddfc4.png)
+
+Graph of Chosen Detectors-Descriptors which shows the differences between TTC Lidar and TTC Camera estimation
+
+![image](https://user-images.githubusercontent.com/105236455/224578376-839ed9e5-fcc2-4f83-b214-22bb66db6315.png)
+
+Chosen Detector-Descriptor and TTC Lidar observation:
+
+Fast-Brisk:
+- Looking at the Fast-Brisk combination one can easily see that Image 9 the Lidar TTC  estimation is off due to the amount of outliers in the image. 
+
+Fast-ORB:
+-  Looking at the Fast-ORB combination one can easily see that Image 10 the Lidar TTC  estimation is off due to the amount of outliers in the image. 
+
+Akaze-ORB:
+- Looking at the Akaze-ORB combination one can easily see that Image 9 the Lidar TTC  estimation is off due to the amount of outliers in the image. 
+
+Fast-Brief:
+-  Looking at the Fast-Brief combination one can easily see that Image 10 the Lidar TTC  estimation is off due to the amount of outliers in the image. 
+
+I chose the following 3 top detector/descriptor combinations because they are the ones that perform the fastest. Therefore my answer to this question is biased on the seed of the Combination of detectors/descriptors. The faster and more accurately we can obtain an estimated TTC then the better since in real life applications speed is important and reliability when talking about life and death scenarious. 
+
+Below is a table which shows some examples where TTC Camera estimation is way off.
+
+- In harris-brisk Image 10 Excel was unable to calculate or show the estimated TTC Camera since the value would have been infinity. 
+
+![image](https://user-images.githubusercontent.com/105236455/224578511-8d9e3cec-97e2-4e51-ae18-da6b05a0806c.png)
 
 ## Dependencies for Running Locally
 * cmake >= 2.8
@@ -35,18 +118,3 @@ In this final project, you will implement the missing parts in the schematic. To
 3. Compile: `cmake .. && make`
 4. Run it: `./3D_object_tracking`.
 
-# FP.5 : Performance Evaluation 1
-
-![image](https://user-images.githubusercontent.com/105236455/224571888-11a896b0-9b31-402c-8735-5974c2e0b22b.png)
-
-![image](https://user-images.githubusercontent.com/105236455/224571900-3f76979f-04f5-424f-b298-c1baa31eb725.png)
-
-# FP.6 Performance Evaluation 2
-
-![image](https://user-images.githubusercontent.com/105236455/224571944-87a37183-c07f-45e5-b8b5-0a4ec65b9ba6.png)
-
-![image](https://user-images.githubusercontent.com/105236455/224571968-3d66da70-ac07-447d-ab7c-2750454142c6.png)
-
-![image](https://user-images.githubusercontent.com/105236455/224571993-d05e0603-a045-45bf-a97a-78ab6fef4c2f.png)
-
-![image](https://user-images.githubusercontent.com/105236455/224572017-936866fd-343c-45e8-b955-86ae2961a947.png)
