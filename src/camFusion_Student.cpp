@@ -2,8 +2,17 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <fstream>
+#include <cmath>
+#include <limits>
+#include <sstream>
+#include <string>
 #include <utility>
+#include <iomanip>
+#include <vector>
 #include <map>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unordered_set>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -15,6 +24,38 @@
 
 using namespace std;
 
+void write_csv(std::string filename, std::vector<std::pair<std::string, std::vector<float>>> dataset){
+    // Make a CSV file with one or more columns of integer values
+    // Each column of data is represented by the pair <column name, column data>
+    //   as std::pair<std::string, std::vector<int>>
+    // The dataset is represented as a vector of these columns
+    // Note that all columns should be the same size
+    
+    // Create an output filestream object
+    std::ofstream myFile(filename);
+    
+    // Send column names to the stream
+    for(int j = 0; j < dataset.size(); ++j)
+    {
+        myFile << dataset.at(j).first;
+        if(j != dataset.size() - 1) myFile << ","; // No comma at end of line
+    }
+    myFile << "\n";
+    
+    // Send data to the stream
+    for(int i = 0; i < dataset.at(0).second.size(); ++i)
+    {
+        for(int j = 0; j < dataset.size(); ++j)
+        {
+            myFile << dataset.at(j).second.at(i);
+            if(j != dataset.size() - 1) myFile << ","; // No comma at end of line
+        }
+        myFile << "\n";
+    }
+    
+    // Close the file
+    myFile.close();
+}
 
 // Create groups of Lidar points whose projection into the camera falls into the same bounding box
 void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<LidarPoint> &lidarPoints, float shrinkFactor, cv::Mat &P_rect_xx, cv::Mat &R_rect_xx, cv::Mat &RT)
@@ -39,7 +80,7 @@ void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<Li
         pt.y = Y.at<double>(1, 0) / Y.at<double>(2, 0); 
 
         vector<vector<BoundingBox>::iterator> enclosingBoxes; // pointers to all bounding boxes which enclose the current Lidar point
-        for (vector<BoundingBox>::iterator it2 = boundingBoxes.begin(); it2 != boundingBoxes.end(); it2++)
+        for (vector<BoundingBox>::iterator it2 = boundingBoxes.begin(); it2 != boundingBoxes.end(); ++it2)
         {
             // shrink current bounding box slightly to avoid having too many outlier points around the edges
             cv::Rect smallerBox;
@@ -71,7 +112,7 @@ void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<Li
 * However, you can make this function work for other sizes too.
 * For instance, to use a 1000x1000 size, adjusting the text positions by dividing them by 2.
 */
-void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, cv::Size imageSize, bool bWait)
+void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, cv::Size imageSize, bool bWait, int imgIndex, const std::string path_dir)
 {
     // create topview image
        cv::Mat topviewImg(imageSize, CV_8UC3, cv::Scalar(255, 255, 255));
@@ -130,6 +171,8 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
     }
 
     // display image
+    string image_name= "Top View Lidar Pts #" + std::to_string((unsigned long)imgIndex)+".jpg";
+    cv::imwrite(path_dir+'/'+image_name,topviewImg);
     string windowName = "3D Objects";
     cv::namedWindow(windowName, 1);
     cv::imshow(windowName, topviewImg);
@@ -144,16 +187,27 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 // associate a given bounding box with the keypoints it contains
 void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches)
 {
-    
      std::pair<int,int> boxes;
+     float robust_mean = 0.0;
     //To eliminate those, I recommend that you compute a robust mean of all the euclidean distances between keypoint matches and then remove those that are too far away from the mean
+    
     for(auto kptMatch = kptMatches.begin() ; kptMatch != kptMatches.end(); kptMatch++)
     {
-                if((boundingBox.roi.contains(kptsCurr[kptMatch->trainIdx].pt) == true) && (boundingBox.roi.contains(kptsPrev[kptMatch->queryIdx].pt) == true))
-                {
+        // find robust mean of all euclidean distances between all matches
+        robust_mean+= cv::norm(kptsCurr[kptMatch->trainIdx].pt - kptsPrev[kptMatch->queryIdx].pt);                
+    }
+    robust_mean /= kptMatches.size();
 
-                    boundingBox.kptMatches.push_back(*kptMatch);
-                }
+    // remove points that are "too far away(not exactly above the mean but a bit too higher than this)"
+    for(auto kptMatch = kptMatches.begin() ; kptMatch != kptMatches.end(); kptMatch++)
+    {
+        // find robust mean of all euclidean distances between all matches         
+        float current_mean = cv::norm(kptsCurr[kptMatch->trainIdx].pt - kptsPrev[kptMatch->queryIdx].pt);
+        // mean*1.3 so anything above this is too far away from the mean and should not be included.
+        if((boundingBox.roi.contains(kptsCurr[kptMatch->trainIdx].pt) == true) && (current_mean <= (robust_mean*1.3)))
+        {
+            boundingBox.kptMatches.push_back(*kptMatch);
+        }
     }
 }
 
@@ -278,6 +332,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
             }
         }
     }
+    // has more than one match these two box matches so add them to the best matched bounding boxes
     int maximum_matches= 0;
     for(auto iter = bbBestMatchesCurr.begin();iter != bbBestMatchesCurr.end();iter++)
     {

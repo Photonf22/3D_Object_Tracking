@@ -19,8 +19,10 @@
 #include "objectDetection2D.hpp"
 #include "lidarData.hpp"
 #include "camFusion.hpp"
-
+#include <sys/types.h>
+#include <sys/stat.h>
 using namespace std;
+
 
 /* MAIN PROGRAM */
 int main(int argc, const char *argv[])
@@ -70,12 +72,22 @@ int main(int argc, const char *argv[])
 
     // misc
     double sensorFrameRate = 10.0 / imgStepWidth; // frames per second for Lidar and camera
-    int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
     vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
     bool bVis = false;            // visualize results
-
+    // Initializing ring buffer
     /* MAIN LOOP OVER ALL IMAGES */
 
+    char path[8] = "ORB_ORB";
+    string path_dir = "";
+    int k;
+    for (k = 0; k < 7; k++) {
+        path_dir = path_dir + path[k];
+    }
+    mkdir(path,0700);
+    /* MAIN LOOP OVER ALL IMAGES */
+    std::vector<float> TTC_Lidar;
+    std::vector<float> TTC_Camera;
+    std::vector<float> index;
     for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex+=imgStepWidth)
     {
         /* LOAD IMAGE INTO BUFFER */
@@ -93,7 +105,8 @@ int main(int argc, const char *argv[])
         frame.cameraImg = img;
         dataBuffer.push_back(frame);
 
-        cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
+        //// EOF STUDENT ASSIGNMENT
+        cout << "#1 : LOAD IMAGE INTO BUFFER done" << "Image Index :"<< imgIndex <<endl;
 
 
         /* DETECT & CLASSIFY OBJECTS */
@@ -103,7 +116,7 @@ int main(int argc, const char *argv[])
         detectObjects((dataBuffer.end() - 1)->cameraImg, (dataBuffer.end() - 1)->boundingBoxes, confThreshold, nmsThreshold,
                       yoloBasePath, yoloClassesFile, yoloModelConfiguration, yoloModelWeights, bVis);
 
-        cout << "#2 : DETECT & CLASSIFY OBJECTS done" << endl;
+      //  cout << "#2 : DETECT & CLASSIFY OBJECTS done" << endl;
 
 
         /* CROP LIDAR POINTS */
@@ -112,14 +125,12 @@ int main(int argc, const char *argv[])
         string lidarFullFilename = imgBasePath + lidarPrefix + imgNumber.str() + lidarFileType;
         std::vector<LidarPoint> lidarPoints;
         loadLidarFromFile(lidarPoints, lidarFullFilename);
-        lidarPoints.size();
         // remove Lidar points based on distance properties
         float minZ = -1.5, maxZ = -0.9, minX = 2.0, maxX = 20.0, maxY = 2.0, minR = 0.1; // focus on ego lane
         cropLidarPoints(lidarPoints, minX, maxX, maxY, minZ, maxZ, minR);
-    
         (dataBuffer.end() - 1)->lidarPoints = lidarPoints;
 
-        cout << "#3 : CROP LIDAR POINTS done" << endl;
+     //   cout << "#3 : CROP LIDAR POINTS done" << endl;
 
         /* CLUSTER LIDAR POINT CLOUD */
 
@@ -128,14 +139,14 @@ int main(int argc, const char *argv[])
         clusterLidarWithROI((dataBuffer.end()-1)->boundingBoxes, (dataBuffer.end() - 1)->lidarPoints, shrinkFactor, P_rect_00, R_rect_00, RT);
 
         // Visualize 3D objects
-        bVis = false;
+        bVis = true;
         if(bVis)
         {
-            show3DObjects((dataBuffer.end()-1)->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), bVis);
+            show3DObjects((dataBuffer.end()-1)->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), bVis, (int)imgIndex, path_dir);
         }
         bVis = false;
 
-        cout << "#4 : CLUSTER LIDAR POINT CLOUD done" << endl;
+   //     cout << "#4 : CLUSTER LIDAR POINT CLOUD done" << endl;
 
         /* DETECT IMAGE KEYPOINTS */
 
@@ -145,7 +156,7 @@ int main(int argc, const char *argv[])
 
         // extract 2D keypoints from current image
         vector<cv::KeyPoint> keypoints; // create empty feature list for current image
-        string detectorType = "SHITOMASI";
+        string detectorType = "ORB";
 
         if (detectorType.compare("SHITOMASI") == 0)
         {
@@ -192,29 +203,28 @@ int main(int argc, const char *argv[])
         // push keypoints and descriptor for current frame to end of data buffer
         (dataBuffer.end() - 1)->keypoints = keypoints;
 
-        cout << "#5 : DETECT KEYPOINTS done" << endl;
+       // cout << "#5 : DETECT KEYPOINTS done" << endl;
 
 
         /* EXTRACT KEYPOINT DESCRIPTORS */
 
         cv::Mat descriptors;
-        string descriptorType = "BRISK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+        string descriptorType = "ORB"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
         descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
 
         // push descriptors for current frame to end of data buffer
         (dataBuffer.end() - 1)->descriptors = descriptors;
 
-        cout << "#6 : EXTRACT DESCRIPTORS done" << endl;
+     //   cout << "#6 : EXTRACT DESCRIPTORS done" << endl;
 
 
         if (dataBuffer.size() > 1) // wait until at least two images have been processed
         {
-
             /* MATCH KEYPOINT DESCRIPTORS */
 
             vector<cv::DMatch> matches;
             string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
-            string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
+            string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG (USE HOG FOR SIFT)
             string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
             matchDescriptors((dataBuffer.end() - 2)->keypoints, (dataBuffer.end() - 1)->keypoints,
@@ -224,7 +234,7 @@ int main(int argc, const char *argv[])
             // store matches in current data frame
             (dataBuffer.end() - 1)->kptMatches = matches;
 
-            cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
+         //   cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
 
             
             /* TRACK 3D OBJECT BOUNDING BOXES */
@@ -237,8 +247,8 @@ int main(int argc, const char *argv[])
             // store matches in current data frame
             (dataBuffer.end()-1)->bbMatches = bbBestMatches;
 
-            cout << "#8 : TRACK 3D OBJECT BOUNDING BOXES done" << endl;
-
+           // cout << "#8 : TRACK 3D OBJECT BOUNDING BOXES done" << endl;
+            cout << "BEST MATCHES box Size :"<<bbBestMatches.size()<< endl;
             /* COMPUTE TTC ON OBJECT IN FRONT */
         
             // loop over all BB match pairs
@@ -261,7 +271,6 @@ int main(int argc, const char *argv[])
                         prevBB = &(*it2);
                     }
                 }
-
                 // compute TTC for current match
                 if( currBB->lidarPoints.size()>0 && prevBB->lidarPoints.size()>0 ) // only compute TTC if we have Lidar points
                 {
@@ -270,7 +279,7 @@ int main(int argc, const char *argv[])
                     double ttcLidar; 
                     computeTTCLidar(prevBB->lidarPoints, currBB->lidarPoints, sensorFrameRate, ttcLidar);
                     //// EOF STUDENT ASSIGNMENT
-
+                    TTC_Lidar.push_back(ttcLidar);
                     //// STUDENT ASSIGNMENT
 
                     //// TASK FP.3 -> assign enclosed keypoint matches to bounding box (implement -> clusterKptMatchesWithROI)
@@ -281,7 +290,8 @@ int main(int argc, const char *argv[])
                     double ttcCamera;               
                     computeTTCCamera((dataBuffer.end() - 2)->keypoints, (dataBuffer.end() - 1)->keypoints, currBB->kptMatches, sensorFrameRate, ttcCamera);
                     //// EOF STUDENT ASSIGNMENT
-
+                    TTC_Camera.push_back(ttcCamera);
+                    index.push_back(imgIndex);
                     bVis = true;
                     if (bVis)
                     {
@@ -296,6 +306,8 @@ int main(int argc, const char *argv[])
                         string windowName = "Final Results : TTC";
                         cv::namedWindow(windowName, 4);
                         cv::imshow(windowName, visImg);
+                        string image_name= "TTC Image #" + std::to_string((unsigned long)imgIndex)+".jpg";
+                        cv::imwrite(path_dir+'/'+image_name,visImg);
                         cout << "Press key to continue to next frame" << endl;
                         cv::waitKey(0);
                     }
@@ -308,6 +320,9 @@ int main(int argc, const char *argv[])
         }
 
     } // eof loop over all images
-
+    std::vector<std::pair<std::string, std::vector<float>>> vals= {{"Image Index",index} ,{"TTC_Lidar", TTC_Lidar}, {"TTC_Camera", TTC_Camera}};
+    
+    //Write the vector to CSV
+    write_csv(path_dir+"/ORB_ORB.csv", vals);
     return 0;
 }
