@@ -34,3 +34,19 @@ In this final project, you will implement the missing parts in the schematic. To
 2. Make a build directory in the top level project directory: `mkdir build && cd build`
 3. Compile: `cmake .. && make`
 4. Run it: `./3D_object_tracking`.
+
+# FP.5 : Performance Evaluation 1
+
+![image](https://user-images.githubusercontent.com/105236455/224571888-11a896b0-9b31-402c-8735-5974c2e0b22b.png)
+
+![image](https://user-images.githubusercontent.com/105236455/224571900-3f76979f-04f5-424f-b298-c1baa31eb725.png)
+
+# FP.6 Performance Evaluation 2
+
+![image](https://user-images.githubusercontent.com/105236455/224571944-87a37183-c07f-45e5-b8b5-0a4ec65b9ba6.png)
+
+![image](https://user-images.githubusercontent.com/105236455/224571968-3d66da70-ac07-447d-ab7c-2750454142c6.png)
+
+![image](https://user-images.githubusercontent.com/105236455/224571993-d05e0603-a045-45bf-a97a-78ab6fef4c2f.png)
+
+![image](https://user-images.githubusercontent.com/105236455/224572017-936866fd-343c-45e8-b955-86ae2961a947.png)
