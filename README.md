@@ -4,7 +4,7 @@ Flow Diagram of Project
 
 <img src="images/course_code_structure.png" width="779" height="414" />
 
-![image](https://user-images.githubusercontent.com/105236455/225168194-121d657f-2feb-47d6-9c69-4982f24f52f3.png)
+![TTC Image #16](https://user-images.githubusercontent.com/105236455/225168314-039ccb7b-2041-4ad1-8220-6654e61a3ff2.jpg)
 
 # Project Rubric:
 
